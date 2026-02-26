@@ -1,12 +1,22 @@
 import numpy as np
 import os
+import sys
 import random
 import torch
+import torchvision
+from torch.utils.data import random_split
+import torchvision.transforms as transforms
 from torch.utils.data import Dataset
+import pandas as pd
+from PIL import Image
 from torch.utils.data import ConcatDataset
+from sklearn.model_selection import train_test_split
 import sklearn
+import torch.nn.functional as F
+from torch.utils.data import Subset
 from pathlib import Path
 from utils.dataset_utils import check_alt
+import math
 
 def set_seed(seed):
     random.seed(seed)
@@ -19,7 +29,7 @@ def set_seed(seed):
     sklearn.utils.check_random_state(seed)
 
 num_clients = 4
-runs = 5
+runs = 1
 dir_path = "brain_seg/"
 
 class BraTSSegmentationDataset(Dataset):
@@ -80,25 +90,42 @@ class BraTSSegmentationDataset(Dataset):
 from collections import defaultdict
 from typing import Dict, List, Tuple
 
-def distribute_samples_among_clients(
-    datasets: Dict[str, List]
-) -> Dict[int, List[Tuple[int, List[int]]]]:
+def distribute_samples_among_clients(datasets):
     client_data = {}
     global_ds_idx = 0
     client_id = 0
 
+    print("=== Data Distribution Log ===")
+
     for modality, ds_list in datasets.items():
         for ds in ds_list:
-            # Each dataset goes to exactly one client
-            sample_indices = list(range(len(ds)))
+            num_samples = len(ds)
+            indices = list(range(num_samples))
+            mid = num_samples // 2
 
-            client_data[client_id] = [
-                (global_ds_idx, sample_indices)
-            ]
+            split_1 = indices[:mid]
+            split_2 = indices[mid:]
 
-            client_id += 1
+            client_data[client_id] = [(global_ds_idx, split_1)]
+            client_data[client_id + 1] = [(global_ds_idx, split_2)]
+
+            print(
+                f"Dataset {global_ds_idx} ({modality}) | "
+                f"Total samples: {num_samples}"
+            )
+            print(
+                f"  -> Client {client_id}:   {len(split_1)} samples "
+                f"(idx {split_1[0]} to {split_1[-1]})"
+            )
+            print(
+                f"  -> Client {client_id+1}: {len(split_2)} samples "
+                f"(idx {split_2[0]} to {split_2[-1]})"
+            )
+
+            client_id += 2
             global_ds_idx += 1
 
+    print("=== Distribution Complete ===\n")
     return client_data
 
 def generate_brain_seg(id):
@@ -115,7 +142,7 @@ def generate_brain_seg(id):
     # Dataset parameters
     Brats_root_dir = '/mnt/raid/obed/jamir/DATA1/BraTS/'
     # BraTS modalities
-    brats_modalities = ["T1", "T1Gd", "T2", "FLAIR"]
+    brats_modalities = ["T2", "FLAIR"]
 
     datasets = {}
 
@@ -153,6 +180,10 @@ def generate_brain_seg(id):
         datasets=datasets,
     )
 
+    all_test_imgs = []
+    all_test_masks = []
+    all_test_mods = []
+
     # First pass: create train/val/test splits and collect test data
     for client_id, dataset_info in client_data.items():
         img_paths = []
@@ -180,13 +211,13 @@ def generate_brain_seg(id):
         train_masks = mask_paths[:train_split]
         train_mods = modalities[:train_split]
 
-        test_imgs = img_paths[train_split:train_split + val_split]
-        test_masks = mask_paths[train_split:train_split + val_split]
-        test_mods = modalities[train_split:train_split + val_split]
+        val_imgs = img_paths[train_split:train_split + val_split]
+        val_masks = mask_paths[train_split:train_split + val_split]
+        val_mods = modalities[train_split:train_split + val_split]
 
-        val_imgs = img_paths[train_split + val_split:]
-        val_masks = mask_paths[train_split + val_split:]
-        val_mods = modalities[train_split + val_split:]
+        test_imgs = img_paths[train_split + val_split:]
+        test_masks = mask_paths[train_split + val_split:]
+        test_mods = modalities[train_split + val_split:]
 
         # Save train and val normally
         np.savez(os.path.join(train_path, f"{client_id}.npz"),
