@@ -394,11 +394,11 @@ def generate_liver_seg(template, id):
     ctorg_ct_dataset = CTORGDataset(CTORG_root_dir)
 
     datasets = {
-        "MR": [dlds_dataset1, dlds_dataset2, chaos_mr_dataset],
+        "MR": [dlds_dataset1, dlds_dataset1, chaos_mr_dataset],
         "CT": [lits_dataset, chaos_ct_dataset, ircadb_ct_dataset, ctorg_ct_dataset]
     }
 
-    dataset_list = [dlds_dataset1, dlds_dataset2, chaos_mr_dataset, lits_dataset, chaos_ct_dataset, ircadb_ct_dataset, ctorg_ct_dataset]
+    dataset_list = [dlds_dataset1, dlds_dataset1, chaos_mr_dataset, lits_dataset, chaos_ct_dataset, ircadb_ct_dataset, ctorg_ct_dataset]
 
     total_len = 0
     for dataset in dataset_list:
