@@ -147,13 +147,13 @@ def load_slices(image_path_or_dir, mask_path_or_dir, modalities):
 
     raise ValueError(f"Unsupported input type: {image_path_or_dir}")
 
-def save_image_pair(img_slice, mask_slice, processed_dir, path_string, modality):
+def save_image_pair(img_slice, mask_slice, processed_dir, path_string, modality, vol_idx, slice_idx):
     sample_id = encode_string_sha256(path_string)
     img_id = modality + "_IMAGE_" + sample_id
     mask_id = modality + "_MASK_" + sample_id
 
-    img_save_path = os.path.join(processed_dir, f"{img_id}.png")
-    mask_save_path = os.path.join(processed_dir, f"{mask_id}.png")
+    img_save_path = os.path.join(processed_dir, f"{img_id}_{vol_idx}_{slice_idx}.png")
+    mask_save_path = os.path.join(processed_dir, f"{mask_id}_{vol_idx}_{slice_idx}.png")
 
     if not os.path.exists(img_save_path):
         imageio.imwrite(img_save_path, img_slice)
@@ -219,19 +219,19 @@ def read_data(dataset, round, idx, dataset_id, data_split='train'):
     tasks = []
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=cpu_count()) as executor:
-        for img_path, mask_path, modality in zip(paths['x'], paths['y'], paths['z']):
+        for vol_idx, (img_path, mask_path, modality) in enumerate(zip(paths['x'], paths['y'], paths['z'])):
 
             img_slices, mask_slices = load_slices(img_path, mask_path, modality)
 
             if data_split is not "train":
-                for i, (img_slice, mask_slice) in enumerate(zip(img_slices, mask_slices)):
-                    tasks.append(executor.submit(save_image_pair, img_slice, mask_slice, data_dir, img_path+str(i), modality))
+                for slice_idx, (img_slice, mask_slice) in enumerate(zip(img_slices, mask_slices)):
+                    tasks.append(executor.submit(save_image_pair, img_slice, mask_slice, data_dir, img_path, modality, vol_idx, slice_idx))
             else:
                 pair_subset = random_subset(dataset, round, idx, dataset_id, img_slices, mask_slices, percentage=version)
                 subset_imgs, subset_masks, subset_indices = pair_subset
 
-                for img_slice, mask_slice, i in zip(subset_imgs, subset_masks, subset_indices):
-                    tasks.append(executor.submit(save_image_pair, img_slice, mask_slice, data_dir, img_path+str(i), modality))
+                for img_slice, mask_slice, slice_idx in zip(subset_imgs, subset_masks, subset_indices):
+                    tasks.append(executor.submit(save_image_pair, img_slice, mask_slice, data_dir, img_path, modality, vol_idx, slice_idx))
 
 
         for future in concurrent.futures.as_completed(tasks):
