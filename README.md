@@ -119,8 +119,8 @@ nohup python3 main.py \
 
 ## Supported Methods
 
-- **FedMoSA** (proposed) — Federated learning with modality-specialized adapters
-- **FedMSA** — Federated learning with modality-shared adapters (vanilla baseline)
+- **FedMoSA** (proposed) — Federated learning with specialized and shared adapters
+- **FedMSA** — Federated learning with medical SAM adapter
 - **FednnUNET FFE** — FednnU-Net with federated fingerprint extraction
 - **FednnUNET AFA** — FednnU-NET with asymmetric federated averaging
 
