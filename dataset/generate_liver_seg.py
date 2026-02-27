@@ -22,7 +22,7 @@ def set_seed(seed):
 
 num_clients = 5
 runs = 3
-dir_path = "liver_seg_alt/"
+dir_path = "liver_seg/"
 
 # Dataset Class
 class LiTSDataset(Dataset):

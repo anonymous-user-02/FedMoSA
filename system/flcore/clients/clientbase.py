@@ -437,7 +437,6 @@ class Client(object):
         return DataLoader(self.val_data, batch_size, drop_last=False, shuffle=False)
 
     def test_metrics(self, temp_model=None, val=True, ood = False):
-        #self.load_train_data()
         if val:
             testloaderfull = self.load_val_data()
         else:

@@ -4,6 +4,62 @@ from flcore.servers.serverbase import Server
 import torch
 import os
 from ..trainmodel.models import *
+def load_brats_model(
+    model,
+    ckpt_path,
+    num_new_experts,
+    device="cpu",
+):
+    ckpt = torch.load(ckpt_path, map_location="cpu")
+    new_state = {}
+
+    for k, v in ckpt.items():
+
+        # --------------------------------------------------
+        # (1) SAM mask decoder
+        # --------------------------------------------------
+        if k.startswith("sam.mask_decoder."):
+            new_state[k] = v
+            continue
+
+        # --------------------------------------------------
+        # (2) Shared adapters (load as-is, per block)
+        # --------------------------------------------------
+        if (
+            ".shared_adapter_attn.adapter." in k
+            or ".shared_adapter_mlp.adapter." in k
+        ):
+            new_state[k] = v
+            continue
+
+        # --------------------------------------------------
+        # (3) Conditional adapters: expand expert[0]
+        # --------------------------------------------------
+        if ".experts." in k:
+            # example:
+            # sam.image_encoder.blocks.0.adapter_attn.experts.0.down.weight
+            prefix, rest = k.split(".experts.")
+            expert_idx, suffix = rest.split(".", 1)
+
+            if expert_idx == "0":
+                for new_idx in range(num_new_experts):
+                    new_key = f"{prefix}.experts.{new_idx}.{suffix}"
+                    new_state[new_key] = v.clone()
+            continue
+
+    # --------------------------------------------------
+    # Load into model
+    # --------------------------------------------------
+    missing, unexpected = model.load_state_dict(
+        new_state, strict=False
+    )
+
+    model.to(device)
+
+    print("✓ Loaded SAM decoder")
+    print("✓ Loaded shared adapters (per block)")
+    print(f"✓ Expanded conditional expert[0] → {num_new_experts} experts")
+    print("Unexpected keys:", unexpected)
 
 class FedSAM(Server):
     def __init__(self, args, times):
@@ -43,6 +99,15 @@ class FedSAM(Server):
             mean_test_acc, best_mean_test_acc = self.evaluate()
             self.save_results(fn=self.hist_result_fn, reset=False)
             self.recovered = True
+
+        # Load Model for BraTS
+        #for client in self.clients:
+        #    load_model_special(
+        #    model=client.model,
+        #    ckpt_path=f"FedSAM/liver_seg--{self.args.model_name}-num_clients:{self.args.num_clients}-{client.id}-{self.args.goal}-{self.times}.pth",
+        #    num_new_experts=2,
+        #    device=self.args.device,
+        #    )
 
         for i in range(self.global_rounds):
             if i >= self.args.prev_round:

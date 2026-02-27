@@ -93,7 +93,7 @@ def get_args():
     parser.add_argument('-lam_dice', "--lam_dice", type=float, default=0.5)
     parser.add_argument('-lam_proto', "--lam_proto", type=float, default=0.01)
     parser.add_argument('-afa', "--afa", type=int, default=0)
-    parser.add_argument('-mod', '--mod_list', type=str, nargs='+', default=["T1", "T1Gd", "T2", "FLAIR"]) #Liver: ["MR","CT"], BraTS: ["T1", "T1Gd", "T2", "FLAIR"]
+    parser.add_argument('-mod', '--mod_list', type=str, nargs='+', default=["MR", "CT"]) #Liver: ["MR","CT"], BraTS: ["T2", "FLAIR"]
 
     # save directories
     parser.add_argument("--hist_dir", type=str, default="../results/", help="dir path for output hist file")
