@@ -140,7 +140,7 @@ def generate_brain_seg(id):
         return
 
     # Dataset parameters
-    Brats_root_dir = '/mnt/raid/obed/jamir/DATA1/BraTS/'
+    Brats_root_dir = './BraTS/'
     # BraTS modalities
     brats_modalities = ["T2", "FLAIR"]
 
