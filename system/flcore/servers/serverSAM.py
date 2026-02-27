@@ -104,7 +104,7 @@ class FedSAM(Server):
         #for client in self.clients:
         #    load_model_special(
         #    model=client.model,
-        #    ckpt_path=f"FedSAM/liver_seg--{self.args.model_name}-num_clients:{self.args.num_clients}-{client.id}-{self.args.goal}-{self.times}.pth",
+        #    ckpt_path=f"FedSAM/liver_seg-{self.args.model_name}-num_clients:{self.args.num_clients}-{client.id}-{self.args.goal}-{self.times}.pth",
         #    num_new_experts=2,
         #    device=self.args.device,
         #    )
