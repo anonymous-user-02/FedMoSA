@@ -368,11 +368,11 @@ def generate_liver_seg(template, id):
         return
 
     # Dataset parameters
-    DLDS_root_dir = '/mnt/raid/obed/jamir/DATA1/DLDS/Segmentation'
-    LiTS17_root_dir = '/mnt/raid/obed/jamir/DATA1/LiTS17/data'
-    CHAOS_root_dir = '/mnt/raid/obed/jamir/DATA1/CHAOS'
-    IRCADb_root_dir = '/mnt/raid/obed/jamir/DATA1/IRCADb'
-    CTORG_root_dir = '/mnt/raid/obed/jamir/DATA1/CTORG/CT-ORG/OrganSegmentations'
+    DLDS_root_dir = './DLDS/Segmentation'
+    LiTS17_root_dir = './LiTS17/data'
+    CHAOS_root_dir = './CHAOS'
+    IRCADb_root_dir = './IRCADb'
+    CTORG_root_dir = './CTORG/CT-ORG/OrganSegmentations'
 
     # Load datasets
     dlds_dataset = DLDSSegmentationDataset(DLDS_root_dir)
