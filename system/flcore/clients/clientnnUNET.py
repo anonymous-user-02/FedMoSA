@@ -75,7 +75,7 @@ class clientnnUNET(Client):
             configuration_manager,
             num_input_channels,
             deep_supervision=True
-        ).to(DEVICE)
+        ).to(self.args.device)
 
         # Official nnU-Net v2 optimizer
         self.optimizer = torch.optim.SGD(
