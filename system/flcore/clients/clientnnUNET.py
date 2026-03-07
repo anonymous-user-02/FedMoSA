@@ -69,15 +69,13 @@ class clientnnUNET(Client):
         num_input_channels = len(dataset_json["channel_names"])
         num_output_channels = len(dataset_json["labels"])
 
-        self.model = get_network_from_plans(
-            arch["network_class_name"],
-            arch["arch_kwargs"],
-            arch["_kw_requires_import"],
+        model = get_network_from_plans(
+            plans_manager,
+            dataset_json,
+            configuration_manager,
             num_input_channels,
-            num_output_channels,
-            allow_init=True,
             deep_supervision=True
-        ).to(self.device)
+        ).to(DEVICE)
 
         # Official nnU-Net v2 optimizer
         self.optimizer = torch.optim.SGD(
