@@ -630,6 +630,7 @@ class NNUNetV2Planner:
     def collect_dataset_statistics(
         self,
         trainloader,
+        load_images_fn,
         num_samples: int = None
     ) -> Dict:
 
@@ -640,12 +641,15 @@ class NNUNetV2Planner:
         foreground_intensities = []
         num_samples_processed = 0
 
-        for batch_idx, (x, y) in enumerate(trainloader):
+        for batch_idx, (x, y, _) in enumerate(trainloader):
 
             if num_samples and num_samples_processed >= num_samples:
                 break
 
-            for img, mask in zip(x, y):
+            image_mask_pairs = load_images_fn(x, y)
+            images, masks = zip(*image_mask_pairs)
+
+            for img, mask in zip(images, masks):
 
                 if isinstance(img, torch.Tensor):
                     img = img.cpu().numpy()
