@@ -69,7 +69,7 @@ class clientnnUNET(Client):
         num_input_channels = len(dataset_json["channel_names"])
         num_output_channels = len(dataset_json["labels"])
 
-        model = get_network_from_plans(
+        self.model = get_network_from_plans(
             plans_manager,
             dataset_json,
             configuration_manager,
