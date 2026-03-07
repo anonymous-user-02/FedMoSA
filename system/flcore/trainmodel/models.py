@@ -630,7 +630,6 @@ class NNUNetV2Planner:
     def collect_dataset_statistics(
         self,
         trainloader,
-        load_images_fn,
         num_samples: int = None
     ) -> Dict:
 
@@ -641,15 +640,12 @@ class NNUNetV2Planner:
         foreground_intensities = []
         num_samples_processed = 0
 
-        for batch_idx, (x, y, _) in enumerate(trainloader):
+        for batch_idx, (x, y) in enumerate(trainloader):
 
             if num_samples and num_samples_processed >= num_samples:
                 break
 
-            image_mask_pairs = load_images_fn(x, y)
-            images, masks = zip(*image_mask_pairs)
-
-            for img, mask in zip(images, masks):
+            for img, mask in zip(x, y):
 
                 if isinstance(img, torch.Tensor):
                     img = img.cpu().numpy()
@@ -710,24 +706,24 @@ class NNUNetV2Planner:
     # dataset.json (nnU-Net v2 compliant)
     # ----------------------------------------------------------
     def create_dataset_json(self, fingerprint: Dict):
-
+    
         channel_names = {"0": "channel_0"}
-
+    
         dataset_json = {
             "name": self.dataset_name,
             "description": "Binary 2D slice dataset",
             "labels": {
-                "0": "background",
-                "1": "foreground",
+                "background": 0,
+                "foreground": 1,
             },
             "numTraining": fingerprint["num_samples"],
             "channel_names": channel_names,
             "file_ending": ".npy",
         }
-
+    
         save_path = join(self.output_folder, "dataset.json")
         save_json(dataset_json, save_path, sort_keys=False)
-
+    
         print("✅ Saved dataset.json")
         return dataset_json
 
@@ -735,36 +731,33 @@ class NNUNetV2Planner:
     # nnUNetPlans.json (v2 architecture format)
     # ----------------------------------------------------------
     def create_plans(self, fingerprint: Dict):
-
+    
         median_shape = fingerprint["shape_after_cropping"]
         median_spacing = fingerprint["spacing"]
-
-        # Patch size (clipped but dataset-driven)
+    
+        # Patch size
         patch_size = [
             int(np.clip(median_shape[0], 128, 512)),
             int(np.clip(median_shape[1], 128, 512)),
         ]
-
+    
         # Dynamic pooling
         num_pool, pool_per_axis = compute_pooling(patch_size)
         divisor = 2 ** num_pool
-        patch_size = [
-        (p // divisor) * divisor
-        for p in patch_size
-        ]
-
+        patch_size = [(p // divisor) * divisor for p in patch_size]
+    
         n_stages = num_pool + 1
         base_features = 32
         max_features = 512
-
+    
         features_per_stage = [
             min(base_features * (2 ** i), max_features)
             for i in range(n_stages)
         ]
-
+    
         strides = [[1, 1]] + [[2, 2]] * num_pool
         kernel_sizes = [[3, 3]] * n_stages
-
+    
         arch_kwargs = {
             "n_stages": n_stages,
             "features_per_stage": features_per_stage,
@@ -787,15 +780,27 @@ class NNUNetV2Planner:
                 "inplace": True,
             },
         }
-
+    
         configuration_2d = {
             "data_identifier": "nnUNetPlans_2d",
             "preprocessor_name": "DefaultPreprocessor",
-            "batch_size": 12,  # fixed since no GPU estimator
+            "batch_size": 12,
             "patch_size": patch_size,
             "spacing": median_spacing,
             "normalization_schemes": ["NoNormalization"],
             "use_mask_for_norm": [False],
+        
+            "UNet_class_name": "PlainConvUNet",
+        
+            "UNet_base_num_features": base_features,
+            "unet_max_num_features": max_features,
+        
+            "conv_kernel_sizes": kernel_sizes,
+            "pool_op_kernel_sizes": strides,
+        
+            "n_conv_per_stage_encoder": [2] * n_stages,
+            "n_conv_per_stage_decoder": [2] * (n_stages - 1),
+        
             "architecture": {
                 "network_class_name": "PlainConvUNet",
                 "arch_kwargs": arch_kwargs,
@@ -807,7 +812,7 @@ class NNUNetV2Planner:
                 ],
             },
         }
-
+    
         plans = {
             "dataset_name": self.dataset_name,
             "plans_name": "nnUNetPlans",
@@ -820,10 +825,10 @@ class NNUNetV2Planner:
             "experiment_planner_used": "SliceBasedExperimentPlanner",
             "label_manager": "LabelManager",
         }
-
+    
         save_path = join(self.output_folder, "nnUNetPlans.json")
         save_json(plans, save_path, sort_keys=False)
-
+    
         print("✅ Generated nnUNetPlans.json (slice-based faithful v2)")
         print(f"   Patch size: {patch_size}")
         print(f"   Pooling stages: {num_pool}")
