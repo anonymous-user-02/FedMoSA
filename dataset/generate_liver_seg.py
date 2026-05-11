@@ -21,7 +21,7 @@ def set_seed(seed):
     sklearn.utils.check_random_state(seed)
 
 num_clients = 5
-runs = 3
+runs = 5
 dir_path = "liver_seg/"
 
 # Dataset Class
@@ -460,21 +460,36 @@ def generate_liver_seg(template, id):
 
 templates = [
 {
-    "MR+CT": 5,
-    "MR": 0,
-    "CT": 0
+    "MR+CT": 1,
+    "MR": 2,
+    "CT": 2
 },
+
 {
     "MR+CT": 2,
     "MR": 1,
     "CT": 2
 },
+
+{
+    "MR+CT": 2,
+    "MR": 2,
+    "CT": 1
+},
+
+{
+    "MR+CT": 5,
+    "MR": 0,
+    "CT": 0
+},
+
 {
     "MR+CT": 0,
     "MR": 3,
     "CT": 2
 }
 ]
+
 if __name__ == "__main__":
     for i in range(runs):
         set_seed(i)
